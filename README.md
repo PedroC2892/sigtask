@@ -41,6 +41,18 @@ upgrade, run `./install.sh` again so the copy matches the new version.
   `kwin` or `gnome-shell`: if you do, switch to a TTY (Ctrl+Alt+F3) and run
   `kill -CONT <pid>`.
 - On GNOME, apps with several processes get the signal sent to all of them.
+- Flatpak and other sandboxed apps: the PID is the sandbox launcher (`bwrap`), so
+  some signals may not reach the app itself.
+- On X11 the PID comes from the window's `_NET_WM_PID`, which the app sets itself.
+  A misbehaving app can point it at another of your processes.
+- If `~/.local/share/plasma/plasmoids/org.kde.plasma.taskmanager` already exists
+  and was not created by sigtask, the installer refuses to overwrite it.
+
+## Tests
+
+```sh
+python3 tests/test_patch.py
+```
 
 ## License
 

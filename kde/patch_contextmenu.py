@@ -5,7 +5,9 @@ Usage: patch_contextmenu.py <path to ContextMenu.qml>
 
 The file is patched in place. Running it twice is a no-op.
 """
+import os
 import sys
+import tempfile
 
 MARKER = "// sigtask: send signal submenu"
 
@@ -89,5 +91,9 @@ if __name__ == "__main__":
         original = f.read()
     patched = patch(original)
     assert patch(patched) == patched, "patch must be idempotent"
-    with open(path, "w", encoding="utf-8") as f:
+    # Write to a temp file and rename so a crash never leaves a half-written QML file.
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(path)), suffix=".qml")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(patched)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, path)

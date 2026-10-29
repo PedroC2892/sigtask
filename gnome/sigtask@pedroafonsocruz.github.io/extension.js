@@ -32,19 +32,23 @@ function sendSignal(sig, pids) {
 export default class SigtaskExtension extends Extension {
     enable() {
         this._injections = new InjectionManager();
+        const menus = this._menus = new Set();
         this._injections.overrideMethod(AppMenu.prototype, 'open', original => function (...args) {
-            this._sigtaskItem?.destroy();
-            this._sigtaskItem = null;
-
             const pids = this._app?.get_pids() ?? [];
-            if (pids.length > 0) {
-                const label = pids.length === 1 ? `Send Signal (PID ${pids[0]})` : `Send Signal (${pids.length} processes)`;
-                const item = new PopupMenu.PopupSubMenuMenuItem(label);
+            if (!this._sigtaskItem) {
+                // Built once per menu. PIDs are re-read on click instead of cached at open,
+                // so an app that exited meanwhile is not signalled through a stale PID.
+                this._sigtaskItem = new PopupMenu.PopupSubMenuMenuItem('');
                 for (const [sig, text] of SIGNALS)
-                    item.menu.addAction(text, () => sendSignal(sig, pids));
-                this.addMenuItem(item);
-                this._sigtaskItem = item;
+                    this._sigtaskItem.menu.addAction(text, () => sendSignal(sig, this._app?.get_pids() ?? []));
+                this.addMenuItem(this._sigtaskItem);
+                menus.add(this);
+                this.connect('destroy', () => menus.delete(this));
             }
+            this._sigtaskItem.visible = pids.length > 0;
+            this._sigtaskItem.label.text = pids.length === 1
+                ? `Send Signal (PID ${pids[0]})`
+                : `Send Signal (${pids.length} processes)`;
             return original.call(this, ...args);
         });
     }
@@ -52,5 +56,11 @@ export default class SigtaskExtension extends Extension {
     disable() {
         this._injections.clear();
         this._injections = null;
+        // Menus outlive the extension, so remove the items added to them.
+        for (const menu of this._menus) {
+            menu._sigtaskItem.destroy();
+            delete menu._sigtaskItem;
+        }
+        this._menus = null;
     }
 }

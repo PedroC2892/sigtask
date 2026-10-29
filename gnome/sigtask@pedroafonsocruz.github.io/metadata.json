@@ -1,0 +1,7 @@
+{
+  "uuid": "sigtask@pedroafonsocruz.github.io",
+  "name": "Send Signal",
+  "description": "Adds a \"Send Signal\" submenu to the app context menu in the dash and dock.",
+  "shell-version": ["45", "46", "47", "48", "49"],
+  "url": "https://github.com/pedroafonsocruz/sigtask"
+}
